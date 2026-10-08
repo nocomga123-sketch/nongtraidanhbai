@@ -144,15 +144,6 @@ export function loadGame() {
         if (saved) {
             const parsed = JSON.parse(saved);
             Object.assign(gameState, parsed);
-            if (!gameState.kitchenStoves || !Array.isArray(gameState.kitchenStoves)) {
-                gameState.kitchenStoves = [
-                    { id: 0, levelReq: 1, cost: 0, unlocked: true, cooking: false, recipeId: null, quantity: 0, startTime: 0, duration: 0 },
-                    { id: 1, levelReq: 3, cost: 500, unlocked: false, cooking: false, recipeId: null, quantity: 0, startTime: 0, duration: 0 },
-                    { id: 2, levelReq: 5, cost: 1200, unlocked: false, cooking: false, recipeId: null, quantity: 0, startTime: 0, duration: 0 },
-                    { id: 3, levelReq: 8, cost: 2500, unlocked: false, cooking: false, recipeId: null, quantity: 0, startTime: 0, duration: 0 }
-                ];
-            }
-            if (!gameState.fishPond) gameState.fishPond = { capacity: 6, fishes: [] };
             return true;
         }
     } catch(e) {}
