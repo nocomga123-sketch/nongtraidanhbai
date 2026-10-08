@@ -1,5 +1,8 @@
 // js/state/gameState.js
 
+export const REAL_SECS_PER_GAME_DAY = 900;
+export const REAL_SECS_PER_GAME_HOUR = 37.5;
+
 export const CONFIG = {
     TOTAL_PLOTS: 48,
     PLOTS_PER_ROW: 8,
@@ -7,7 +10,11 @@ export const CONFIG = {
     SAVE_KEY: 'avatar_mini_farm_save_v10'
 };
 
-export const ANIMAL_PROD_INTERVALS = { chicken: 90, cow: 180, pig: 270 };
+export const ANIMAL_PROD_INTERVALS = {
+    chicken: 90,
+    cow: 180,
+    pig: 270
+};
 
 export const CROPS_DB = {
     rice: { id: 'rice', name: 'Lúa', growTime: 40, seedCost: 10, sellPrice: 25, exp: 5, icon: '🌾' },
@@ -52,18 +59,37 @@ export const RECIPES_DB = {
     choco_strawberry: { id: 'choco_strawberry', name: 'Dâu Tây Bọc Socola', cost: 400, cookTime: 40, sellPrice: 980, staminaRestore: 110, ingredients: { strawberry: 3 }, icon: '🍓' }
 };
 
+export const WEATHER_TYPES = ['sunny', 'rainy', 'cloudy', 'snowy'];
+export const WEATHER_ICONS = { sunny: '☀️', rainy: '🌧️', cloudy: '☁️', snowy: '❄️' };
+export const WEATHER_NAMES = { sunny: 'Nắng đẹp', rainy: 'Mưa rào', cloudy: 'Nhiều mây', snowy: 'Tuyết rơi' };
+
+export let shopBuyQty = 1;
+export let activeShopTab = 'seeds';
+export function setShopBuyQty(val) { shopBuyQty = val; }
+export function setActiveShopTab(val) { activeShopTab = val; }
+
 export let gameState = {
     level: 1, exp: 0, gold: 2000, stamina: 100, maxStamina: 100, staminaFloat: 100,
-    currentTool: 'hand', gameDay: 1, dayTimeSeconds: 225, currentWeather: 'sunny',
+    currentTool: 'hand', gameDay: 1, dayTimeSeconds: 6 * REAL_SECS_PER_GAME_HOUR, currentWeather: 'sunny',
     inventory: {
         rice_seed: 5, corn_seed: 3, sapling_apple: 2, feed_chicken: 5, feed_cow: 3, feed_pig: 3,
         medicine: 2, buy_chicken: 2, buy_cow: 1, buy_pig: 1, fry_goldfish: 2, egg: 2, milk: 1, pork: 0, worm: 2
     },
     unlockedRecipes: ['rice_bowl', 'grilled_corn', 'apple_juice', 'pork_stew'],
-    unlockedPlots: Array(48).fill(false),
-    plots: Array(48).fill(null).map(() => ({ cropId: null, plantedAt: 0, watered: false, reducedSecs: 0, hasPest: false, pestAppearedAt: 0, pestImmune: false, isDead: false })),
-    orchardPlots: Array(10).fill(null).map((_, i) => ({ unlocked: i < 2, treeType: i === 0 ? 'apple' : null, plantedAt: i === 0 ? Date.now() - 120000 : 0 })),
-    fishPond: { capacity: 6, fishes: [{ id: 1, type: 'fry_goldfish', plantedAt: Date.now() - 40000 }, { id: 2, type: 'fry_carp', plantedAt: Date.now() - 100000 }] },
+    unlockedPlots: Array(CONFIG.TOTAL_PLOTS).fill(false),
+    plots: Array(CONFIG.TOTAL_PLOTS).fill(null).map(() => ({
+        cropId: null, plantedAt: 0, watered: false, reducedSecs: 0, hasPest: false, pestAppearedAt: 0, pestImmune: false, isDead: false
+    })),
+    orchardPlots: Array(10).fill(null).map((_, i) => ({
+        unlocked: i < 2, treeType: i === 0 ? 'apple' : null, plantedAt: i === 0 ? Date.now() - 120000 : 0
+    })),
+    fishPond: { 
+        capacity: 6, 
+        fishes: [
+            { id: 1, type: 'fry_goldfish', plantedAt: Date.now() - 40000 },
+            { id: 2, type: 'fry_carp', plantedAt: Date.now() - 100000 }
+        ] 
+    },
     chickens: [{ id: 1, bornAt: Date.now() - 200000, yieldCount: 0, hungry: false, sick: false, lastSickDay: 0, producedAt: Date.now() - 50000, x: -20, z: -18, targetX: -20, targetZ: -18 }],
     cows: [{ id: 1, bornAt: Date.now() - 400000, yieldCount: 0, hungry: false, sick: false, lastSickDay: 0, producedAt: Date.now() - 100000, x: -20, z: 10, targetX: -20, targetZ: 10 }],
     pigs: [{ id: 1, bornAt: Date.now() - 200000, hungry: false, sick: false, lastSickDay: 0, producedAt: Date.now() - 150000, x: 20, z: 14, targetX: 20, targetZ: 14 }],
@@ -78,23 +104,13 @@ export let gameState = {
 
 for (let i = 0; i < 6; i++) gameState.unlockedPlots[i] = true;
 
-export function loadGame() {
-    try {
-        const saved = localStorage.getItem(CONFIG.SAVE_KEY);
-        if (saved) Object.assign(gameState, JSON.parse(saved));
-    } catch(e) {}
-}
-
-export function saveGame() {
-    try { localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(gameState)); } catch(e) {}
-}
-
 export function getItemInfo(key) {
     if (CROPS_DB[key]) return CROPS_DB[key];
     if (TREES_DB[key]) return TREES_DB[key];
     if (FISH_DB[key]) return FISH_DB[key];
     if (SUPPLIES_DB[key]) return SUPPLIES_DB[key];
     if (RECIPES_DB[key]) return RECIPES_DB[key];
+    
     if (key.endsWith('_seed')) {
         const base = key.replace('_seed', '');
         if (CROPS_DB[base]) return { name: 'Hạt Giống ' + CROPS_DB[base].name, icon: '🌱', cost: CROPS_DB[base].seedCost };
@@ -103,6 +119,7 @@ export function getItemInfo(key) {
         const base = key.replace('sapling_', '');
         if (TREES_DB[base]) return { name: 'Cây Giống ' + TREES_DB[base].name, icon: '🌳', cost: TREES_DB[base].saplingCost };
     }
+    
     const specialMap = {
         buy_chicken: { name: 'Gà Con Giống', icon: '🐥', cost: 150 },
         buy_cow: { name: 'Bò Giống', icon: '🐮', cost: 500 },
@@ -112,5 +129,32 @@ export function getItemInfo(key) {
         pork: { name: 'Thịt Heo Sạch', icon: '🥩', sellPrice: 150, exp: 30 },
         worm: { name: 'Sâu Đất', icon: '🐛', sellPrice: 10, exp: 5 }
     };
-    return specialMap[key] || { name: key, icon: '📦', sellPrice: 20 };
+    if (specialMap[key]) return specialMap[key];
+
+    return { name: key, icon: '📦', sellPrice: 20 };
+}
+
+export function saveGame() {
+    try { localStorage.setItem(CONFIG.SAVE_KEY, JSON.stringify(gameState)); } catch(e) {}
+}
+
+export function loadGame() {
+    try {
+        const saved = localStorage.getItem(CONFIG.SAVE_KEY);
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            Object.assign(gameState, parsed);
+            if (!gameState.kitchenStoves || !Array.isArray(gameState.kitchenStoves)) {
+                gameState.kitchenStoves = [
+                    { id: 0, levelReq: 1, cost: 0, unlocked: true, cooking: false, recipeId: null, quantity: 0, startTime: 0, duration: 0 },
+                    { id: 1, levelReq: 3, cost: 500, unlocked: false, cooking: false, recipeId: null, quantity: 0, startTime: 0, duration: 0 },
+                    { id: 2, levelReq: 5, cost: 1200, unlocked: false, cooking: false, recipeId: null, quantity: 0, startTime: 0, duration: 0 },
+                    { id: 3, levelReq: 8, cost: 2500, unlocked: false, cooking: false, recipeId: null, quantity: 0, startTime: 0, duration: 0 }
+                ];
+            }
+            if (!gameState.fishPond) gameState.fishPond = { capacity: 6, fishes: [] };
+            return true;
+        }
+    } catch(e) {}
+    return false;
 }
