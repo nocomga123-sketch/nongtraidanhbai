@@ -1,115 +1,123 @@
-import { CROPS_DB } from '../config/database.js';
+// js/render/models.js
 
-export function createLockIconMesh(isOpen = false) {
+export function createPlayerModel() {
     const group = new THREE.Group();
-    const body = new THREE.Mesh(
-        new THREE.BoxGeometry(0.4, 0.35, 0.2),
-        new THREE.MeshStandardMaterial({ color: isOpen ? 0x10b981 : 0xea580c })
-    );
-    body.position.y = 0.175;
+
+    // Đầu
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 16, 16), new THREE.MeshStandardMaterial({ color: 0xffdbac, roughness: 0.6 }));
+    head.position.y = 1.45;
+    head.castShadow = true;
+    group.add(head);
+
+    // Mắt Chibi
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0x1e1b4b });
+    const lEye = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), eyeMat);
+    lEye.position.set(-0.14, 1.48, 0.36);
+    group.add(lEye);
+    const rEye = lEye.clone();
+    rEye.position.set(0.14, 1.48, 0.36);
+    group.add(rEye);
+
+    // Mũ rơm
+    const hatMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.8 });
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.7, 0.7, 0.05, 16), hatMat);
+    brim.position.y = 1.72;
+    group.add(brim);
+    const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.42, 0.35, 16), hatMat);
+    crown.position.y = 1.9;
+    group.add(crown);
+
+    // Thân & Áo
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.35), new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.7 }));
+    body.position.y = 0.85;
     body.castShadow = true;
     group.add(body);
 
-    const shackle = new THREE.Mesh(
-        new THREE.TorusGeometry(0.12, 0.04, 8, 16, Math.PI),
-        new THREE.MeshStandardMaterial({ color: 0xe2e8f0 })
-    );
-    shackle.position.set(isOpen ? 0.08 : 0, 0.38, 0);
-    shackle.rotation.z = isOpen ? -0.4 : 0;
-    shackle.castShadow = true;
-    group.add(shackle);
+    // Tay & Chân
+    const armMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.7 });
+    const legMat = new THREE.MeshStandardMaterial({ color: 0x1e3a8a, roughness: 0.8 });
 
+    const lArm = new THREE.Group(); lArm.position.set(-0.32, 1.1, 0);
+    const lArmM = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.45), armMat);
+    lArmM.position.y = -0.2; lArm.add(lArmM); group.add(lArm);
+
+    const rArm = new THREE.Group(); rArm.position.set(0.32, 1.1, 0);
+    const rArmM = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.45), armMat);
+    rArmM.position.y = -0.2; rArm.add(rArmM); group.add(rArm);
+
+    const lLeg = new THREE.Group(); lLeg.position.set(-0.15, 0.55, 0);
+    const lLegM = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.5), legMat);
+    lLegM.position.y = -0.25; lLeg.add(lLegM); group.add(lLeg);
+
+    const rLeg = new THREE.Group(); rLeg.position.set(0.15, 0.55, 0);
+    const rLegM = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.5), legMat);
+    rLegM.position.y = -0.25; rLeg.add(rLegM); group.add(rLeg);
+
+    return { group, lArm, rArm, lLeg, rLeg };
+}
+
+export function createChickenModel(data) {
+    const group = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.28, 12, 12), new THREE.MeshStandardMaterial({ color: 0xfffbeb, roughness: 0.6 }));
+    body.scale.set(0.8, 0.9, 1.1);
+    body.position.y = 0.35;
+    body.castShadow = true;
+    group.add(body);
+
+    const comb = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), new THREE.MeshStandardMaterial({ color: 0xdc2626 }));
+    comb.position.set(0, 0.68, 0.20);
+    group.add(comb);
+
+    const beak = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.1, 6), new THREE.MeshStandardMaterial({ color: 0xf59e0b }));
+    beak.position.set(0, 0.50, 0.36);
+    beak.rotation.x = Math.PI / 2;
+    group.add(beak);
+
+    group.position.set(data.x, 0, data.z);
+    group.userData = { type: 'chicken_pen' };
     return group;
 }
 
-export function renderCrop3DStage(cropId, growRatio, hasPest) {
+export function createCowModel(data) {
     const group = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.8, 1.4), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.7 }));
+    body.position.y = 0.85;
+    body.castShadow = true;
+    group.add(body);
 
-    if (growRatio < 0.33) {
-        const sprout = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.03, 0.04, 0.25),
-            new THREE.MeshStandardMaterial({ color: 0x86efac })
-        );
-        sprout.position.y = 0.125;
-        group.add(sprout);
-    } else if (growRatio < 0.95) {
-        const stalk = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.06, 0.08, 0.5),
-            new THREE.MeshStandardMaterial({ color: 0x22c55e })
-        );
-        stalk.position.y = 0.25;
-        group.add(stalk);
-    } else {
-        if (cropId === 'rice') {
-            for (let a = 0; a < 5; a++) {
-                const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 0.7), new THREE.MeshStandardMaterial({ color: 0x854d0e }));
-                stem.rotation.z = (a - 2) * 0.2;
-                stem.position.set((a - 2) * 0.1, 0.35, 0);
-                group.add(stem);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.52, 0.52, 0.55), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+    head.position.set(0, 1.25, 0.75);
+    head.castShadow = true;
+    group.add(head);
 
-                const grains = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35, 6), new THREE.MeshStandardMaterial({ color: 0xeab308 }));
-                grains.position.set((a - 2) * 0.15, 0.65, 0);
-                grains.rotation.z = (a - 2) * 0.3;
-                group.add(grains);
-            }
-        } else if (cropId === 'corn') {
-            const stalk = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 1.1), new THREE.MeshStandardMaterial({ color: 0x15803d }));
-            stalk.position.y = 0.55;
-            group.add(stalk);
+    const snout = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.25, 0.25), new THREE.MeshStandardMaterial({ color: 0xfbcfe8 }));
+    snout.position.set(0, 1.12, 1.02);
+    group.add(snout);
 
-            const cob = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.12, 0.5, 10), new THREE.MeshStandardMaterial({ color: 0xfacc15 }));
-            cob.position.set(0.12, 0.65, 0);
-            cob.rotation.z = -0.3;
-            group.add(cob);
+    group.position.set(data.x, 0, data.z);
+    group.userData = { type: 'cow_barn' };
+    return group;
+}
 
-            const silk = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.15), new THREE.MeshStandardMaterial({ color: 0xb45309 }));
-            silk.position.set(0.2, 0.88, 0);
-            group.add(silk);
-        } else if (cropId === 'tomato') {
-            const bush = new THREE.Mesh(new THREE.DodecahedronGeometry(0.4), new THREE.MeshStandardMaterial({ color: 0x16a34a }));
-            bush.position.y = 0.4;
-            group.add(bush);
+export function createPigModel(data) {
+    const group = new THREE.Group();
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.52, 16, 16), new THREE.MeshStandardMaterial({ color: 0xf472b6, roughness: 0.6 }));
+    body.scale.set(0.9, 0.85, 1.2);
+    body.position.y = 0.55;
+    body.castShadow = true;
+    group.add(body);
 
-            for (let t = 0; t < 4; t++) {
-                const tom = new THREE.Mesh(new THREE.SphereGeometry(0.14, 10, 10), new THREE.MeshStandardMaterial({ color: 0xdc2626, roughness: 0.2 }));
-                const angle = (t / 4) * Math.PI * 2;
-                tom.position.set(Math.cos(angle) * 0.28, 0.35, Math.sin(angle) * 0.28);
-                group.add(tom);
-            }
-        } else if (cropId === 'pumpkin') {
-            const pumpkin = new THREE.Mesh(new THREE.SphereGeometry(0.38, 12, 8), new THREE.MeshStandardMaterial({ color: 0xea580c }));
-            pumpkin.scale.set(1.2, 0.8, 1.2);
-            pumpkin.position.y = 0.3;
-            group.add(pumpkin);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.38, 14, 14), new THREE.MeshStandardMaterial({ color: 0xf472b6 }));
+    head.position.set(0, 0.65, 0.45);
+    head.castShadow = true;
+    group.add(head);
 
-            const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, 0.18), new THREE.MeshStandardMaterial({ color: 0x15803d }));
-            stem.position.y = 0.55;
-            group.add(stem);
-        } else if (cropId === 'watermelon') {
-            const melon = new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 10), new THREE.MeshStandardMaterial({ color: 0x15803d, roughness: 0.3 }));
-            melon.scale.set(1.3, 0.9, 0.9);
-            melon.position.y = 0.32;
-            group.add(melon);
-        } else if (cropId === 'strawberry') {
-            const bush = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), new THREE.MeshStandardMaterial({ color: 0x22c55e }));
-            bush.position.y = 0.3;
-            group.add(bush);
+    const snout = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 0.08, 12), new THREE.MeshStandardMaterial({ color: 0xf43f5e }));
+    snout.position.set(0, 0.60, 0.80);
+    snout.rotation.x = Math.PI / 2;
+    group.add(snout);
 
-            for (let s = 0; s < 3; s++) {
-                const berry = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.22, 8), new THREE.MeshStandardMaterial({ color: 0xf43f5e }));
-                berry.rotation.x = Math.PI;
-                const angle = (s / 3) * Math.PI * 2;
-                berry.position.set(Math.cos(angle) * 0.25, 0.25, Math.sin(angle) * 0.25);
-                group.add(berry);
-            }
-        }
-    }
-
-    if (hasPest) {
-        const pest = new THREE.Mesh(new THREE.SphereGeometry(0.12), new THREE.MeshStandardMaterial({ color: 0xef4444 }));
-        pest.position.set(0.2, 0.4, 0.2);
-        group.add(pest);
-    }
-
+    group.position.set(data.x, 0, data.z);
+    group.userData = { type: 'pig_pen' };
     return group;
 }
